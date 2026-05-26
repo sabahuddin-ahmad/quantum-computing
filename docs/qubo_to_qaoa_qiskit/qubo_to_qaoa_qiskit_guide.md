@@ -1,4 +1,8 @@
-# QUBO to QAOA Using Qiskit
+# QUBO to QAOA using Qiskit
+
+**By**: Sabah Ud Din Ahmad
+
+**Last Updated**: May 25, 2026
 
 In this document, I explain how to convert a QUBO optimization problem into a QAOA workflow using Qiskit.
 
@@ -25,7 +29,6 @@ $$
 
 # 1. Background: What problem are we solving?
 
-## 1.1 Theory
 A QUBO problem is a **quadratic unconstrained binary optimization** problem.
 It has the form
 $$
@@ -37,14 +40,14 @@ E_{\mathrm{QUBO}}(\mathbf{x})
 }
 \tag{1}
 $$
-| Symbol | Meaning |
-|---|---|
-| $\mathbf{x}$ | Binary decision vector |
-| $x_i$ | Binary variable, $x_i\in\{0,1\}$ |
-| $n$ | Number of binary variables |
-| $Q$ | QUBO matrix, $Q\in\mathbb{R}^{n\times n}$ |
-| $E_{\mathrm{QUBO}}(\mathbf{x})$ | QUBO energy/objective function |
-| $\mathsf{T}$ | Matrix transpose |
+where
+
+- $\mathbf{x}$: Binary decision vector.
+- $x_i$: Binary variable, $x_i\in\{0,1\}$.
+- $n$: Number of binary variables.
+- $Q$: QUBO matrix, $Q\in\mathbb{R}^{n\times n}$.
+- $E_{\mathrm{QUBO}}(\mathbf{x})$: QUBO energy/objective function.
+- $\mathsf{T}$: Matrix transpose.
 
 The goal is to find the binary string
 $$
@@ -56,10 +59,10 @@ $$
 }
 \tag{2}
 $$
-| Symbol | Meaning |
-|---|---|
-| $\mathbf{x}^{\star}$ | Best binary solution |
-| $\arg\min$ | Input value that gives the minimum objective |
+where
+
+- $\mathbf{x}^{\star}$: Best binary solution.
+- $\arg\min$: Input value that gives the minimum objective.
 
 > We are searching over all possible strings of zeros and ones and choosing the one with the lowest cost.
 
@@ -67,13 +70,9 @@ For example, if $n=3$, then the possible solutions are
 $$
 000,\;001,\;010,\;011,\;100,\;101,\;110,\;111.
 $$
-There are
-$$
-2^n
-$$
-possible binary strings. Therefore, brute-force search becomes expensive as $n$ grows.
+There are $2^n$ possible binary strings. Therefore, brute-force search becomes expensive as $n$ grows.
 
-## 1.2 Input format
+## 1.1 Input format
 The input to the pipeline is a square numerical matrix:
 $$
 Q =
@@ -94,6 +93,7 @@ Q = np.array([
 ```
 
 Assumptions:
+
 1. $Q$ must be square.
 2. $Q$ must contain finite real numbers.
 3. The variables are binary: $x_i\in\{0,1\}$.
@@ -107,7 +107,7 @@ x_i^2=x_i,
 $$
 the diagonal entries of $Q$ act like linear terms.
 
-## 1.3 Code: basic input validation
+## 1.2 Code: Input validation
 ```python
 import numpy as np
 
@@ -123,6 +123,9 @@ def validate_qubo_matrix(Q: np.ndarray) -> np.ndarray:
     """
     Q = np.asarray(Q, dtype=float)
 
+    if Q.ndim != 2:
+        raise ValueError("Q must be a two-dimensional matrix.")
+
     if Q.shape[0] != Q.shape[1]:
         raise ValueError("Q must be square, with shape (n, n).")
 
@@ -134,7 +137,6 @@ def validate_qubo_matrix(Q: np.ndarray) -> np.ndarray:
 
 # 2. Converting QUBO to Ising Hamiltonian
 
-## 2.1 Theory
 QAOA does not directly optimize a classical matrix $Q$. QAOA optimizes a quantum cost Hamiltonian. For QUBO problems, the standard Hamiltonian is an Ising Hamiltonian:
 $$
 \boxed{
@@ -148,29 +150,27 @@ C\hat{I}
 }
 \tag{3}
 $$
-| Symbol | Meaning |
-|---|---|
-| $\hat{H}_C$ | QAOA cost Hamiltonian |
-| $C$ | Constant energy offset |
-| $\hat{I}$ | Identity operator |
-| $h_i$ | Linear Ising coefficient for qubit $i$ |
-| $J_{ij}$ | Pairwise Ising coupling between qubits $i$ and $j$ |
-| $\hat{Z}_i$ | Pauli-$Z$ operator acting on qubit $i$ |
-| $\hat{Z}_i\hat{Z}_j$ | Two-qubit Pauli-$Z$ interaction |
+where
+
+- $\hat{H}_C$: QAOA cost Hamiltonian.
+- $C$: Constant energy offset.
+- $\hat{I}$: Identity operator.
+- $h_i$: Linear Ising coefficient for qubit $i$.
+- $J_{ij}$: Pairwise Ising coupling between qubits $i$ and $j$.
+- $\hat{Z}_i$: Pauli-$Z$ operator acting on qubit $i$.
+- $\hat{Z}_i\hat{Z}_j$: Two-qubit Pauli-$Z$ interaction.
 
 The conversion uses the binary-to-spin map
-
-
 $$
 \boxed{
 x_i=\frac{1-z_i}{2}
 }
 \tag{4}
 $$
-| Symbol | Meaning |
-|---|---|
-| $x_i$ | Binary QUBO variable, $x_i\in\{0,1\}$ |
-| $z_i$ | Spin variable, $z_i\in\{-1,+1\}$ |
+where
+
+- $x_i$: Binary QUBO variable, $x_i\in\{0,1\}$.
+- $z_i$: Spin variable, $z_i\in\{-1,+1\}$.
 
 The inverse relation is
 $$
@@ -190,18 +190,15 @@ $$
 $$
 
 Therefore,
-| Bit value | Quantum state | $Z$-eigenvalue |
-|---|---|---|
-| $x_i=0$ | $\lvert0\rangle$ | $z_i=+1$ |
-| $x_i=1$ | $\lvert1\rangle$ | $z_i=-1$ |
+
+- if $x_i=0$, the quantum state is $\lvert 0\rangle$ and the $Z$-eigenvalue is $z_i=+1$.
+- if $x_i=1$, the quantum state is $\lvert 1\rangle$ and the $Z$-eigenvalue is $z_i=-1$.
 
 So the map
 $$
 x_i=\frac{1-z_i}{2}
 $$
 is consistent with computational-basis measurements.
-
-## 2.2 Converting QUBO to Ising
 
 For a general QUBO objective written as
 $$
@@ -216,11 +213,11 @@ c
 }
 \tag{6}
 $$
-| Symbol | Meaning |
-|---|---|
-| $c$ | Constant term in the QUBO objective |
-| $q_i$ | Linear coefficient for $x_i$ |
-| $q_{ij}$ | Quadratic coefficient for $x_ix_j$ |
+where
+
+- $c$: Constant term in the QUBO objective.
+- $q_i$: Linear coefficient for $x_i$.
+- $q_{ij}$: Quadratic coefficient for $x_i x_j$,
 
 substitute
 $$
@@ -288,7 +285,7 @@ C
 \tag{11}
 $$
 
-where:
+where
 $$
 \boxed{
 C
@@ -301,8 +298,6 @@ c
 }
 \tag{12}
 $$
-
-
 $$
 \boxed{
 h_i
@@ -313,8 +308,6 @@ h_i
 }
 \tag{13}
 $$
-
-
 $$
 \boxed{
 J_{ij}
@@ -323,17 +316,17 @@ J_{ij}
 }
 \tag{14}
 $$
-| Symbol | Meaning |
-|---|---|
-| $C$ | Constant offset after QUBO-to-Ising conversion |
-| $h_i$ | Linear Ising coefficient |
-| $J_{ij}$ | Quadratic Ising coupling |
-| $q_i$ | QUBO linear coefficient |
-| $q_{ij}$ | QUBO pairwise coefficient |
+where
+
+- $C$: Constant offset after QUBO-to-Ising conversion.
+- $h_i$: Linear Ising coefficient.
+- $J_{ij}$: Quadratic Ising coupling.
+- $q_i$: QUBO linear coefficient.
+- $q_{ij}$: QUBO pairwise coefficient.
 
 The constant $C$ shifts all energies by the same amount. It does not change which bitstring is optimal.
 
-## 2.3 Code: QUBO-to-Ising
+## 2.1 Code: QUBO-to-Ising
 
 ```python
 import numpy as np
@@ -394,9 +387,8 @@ def qubo_to_ising(Q: np.ndarray, constant: float = 0.0):
     return C, h, J
 ```
 
-# 3. QAOA circuit structure
+# 3. QAOA Implementation
 
-## 3.1 Theory
 QAOA prepares a parameterized quantum state
 $$
 \boxed{
@@ -409,16 +401,15 @@ e^{-i\gamma_\ell \hat{H}_C}
 }
 \tag{15}
 $$
-where:
-| Symbol | Meaning |
-|---|---|
-| $\lvert\psi(\boldsymbol{\gamma},\boldsymbol{\beta})\rangle$ | QAOA trial quantum state |
-| $\boldsymbol{\gamma}$ | Cost-Hamiltonian parameters |
-| $\boldsymbol{\beta}$ | Mixer-Hamiltonian parameters |
-| $p$ | QAOA depth, also called the number of repetitions/layers |
-| $\hat{H}_C$ | Cost Hamiltonian encoding the QUBO objective |
-| $\hat{H}_M$ | Mixer Hamiltonian |
-| $\lvert+\rangle^{\otimes n}$ | Equal superposition over all $n$-bit strings |
+where
+
+- $\lvert\psi(\boldsymbol{\gamma},\boldsymbol{\beta})\rangle$: QAOA trial quantum state.
+- $\boldsymbol{\gamma}$: Cost-Hamiltonian parameters.
+- $\boldsymbol{\beta}$: Mixer-Hamiltonian parameters.
+- $p$: QAOA depth, also called the number of repetitions/layers.
+- $\hat{H}_C$: Cost Hamiltonian encoding the QUBO objective.
+- $\hat{H}_M$: Mixer Hamiltonian.
+- $\lvert+\rangle^{\otimes n}$: Equal superposition over all $n$-bit strings.
 
 The initial state is
 $$
@@ -431,11 +422,10 @@ $$
 }
 \tag{16}
 $$
-where:
-| Symbol | Meaning |
-|---|---|
-| $\lvert+\rangle$ | Single-qubit equal-superposition state |
-| $\otimes$ | Tensor product |
+where
+
+- $\lvert+\rangle$: Single-qubit equal-superposition state.
+- $\otimes$: Tensor product.
 
 The standard mixer Hamiltonian is
 $$
@@ -446,10 +436,9 @@ $$
 }
 \tag{17}
 $$
-where:
-| Symbol | Meaning |
-|---|---|
-| $\hat{X}_i$ | Pauli-$X$ operator acting on qubit $i$ |
+where
+
+- $\hat{X}_i$: Pauli-$X$ operator acting on qubit $i$.
 
 The cost unitary is
 $$
@@ -491,7 +480,7 @@ $$
 
 > QAOA starts with all possible answers in superposition. It then repeatedly applies a cost operation and a mixing operation. The classical optimizer adjusts the parameters so that low-cost bitstrings become more likely when the circuit is measured.
 
-## 3.2 Code: QAOA ansatz from an Ising operator
+## 3.1 Code: QAOA ansatz from an Ising operator
 
 ```python
 from qiskit.circuit.library import QAOAAnsatz
@@ -517,7 +506,6 @@ def build_qaoa_ansatz(ising_operator, reps: int = 1):
 
 # 4. Building the QUBO in Qiskit
 
-## 4.1 Theory
 Qiskit Optimization represents optimization problems using `QuadraticProgram`.
 
 For a QUBO matrix $Q$, the objective is
@@ -528,21 +516,20 @@ $$
 +
 \sum_{i<j}(Q_{ij}+Q_{ji})x_ix_j
 }
-\tag{21}
+\tag{20}
 $$
-where:
-| Symbol | Meaning |
-|---|---|
-| $Q_{ii}$ | Diagonal element of the QUBO matrix |
-| $Q_{ij}+Q_{ji}$ | Effective off-diagonal QUBO coefficient |
-| $x_i x_j$ | Product of two binary variables |
+where
+
+- $Q_{ii}$: Diagonal element of the QUBO matrix.
+- $Q_{ij}+Q_{ji}$: Effective off-diagonal QUBO coefficient.
+- $x_i x_j$: Product of two binary variables.
 
 This expression is equivalent to
 $$
 \mathbf{x}^{\mathsf{T}}Q\mathbf{x}.
 $$
 
-## 4.2 Code: convert QUBO matrix to `QuadraticProgram`
+## 4.1 Code: Convert QUBO matrix to `QuadraticProgram`
 ```python
 import numpy as np
 from qiskit_optimization import QuadraticProgram
@@ -594,9 +581,8 @@ def qubo_matrix_to_quadratic_program(
     return qp
 ```
 
-# 5. Converting the QUBO to an Ising Hamiltonian in Qiskit
+# 5. Converting the QUBO to an Ising Hamiltonian using Qiskit
 
-## 5.1 Theory
 Qiskit can convert a `QuadraticProgram` into a qubit Hamiltonian:
 $$
 \boxed{
@@ -606,14 +592,13 @@ $$
 +
 \texttt{offset}
 }
-\tag{22}
+\tag{21}
 $$
-where:
-| Symbol / Object | Meaning |
-|---|---|
-| `SparsePauliOp` | Qiskit sparse Pauli-operator representation of $\hat{H}_C$ |
-| `offset` | Constant energy shift $C$ |
-| $\hat{H}_C$ | Cost Hamiltonian used by QAOA |
+where
+
+- `SparsePauliOp`: Qiskit sparse Pauli-operator representation of $\hat{H}_C$.
+- `offset`: Constant energy shift $C$.
+- $\hat{H}_C$: Cost Hamiltonian used by QAOA.
 
 The relation between the QUBO energy and Ising energy is
 $$
@@ -622,14 +607,9 @@ E_{\mathrm{QUBO}}(\mathbf{x})
 =
 E_{\mathrm{Ising}}(\mathbf{z})
 }
-\tag{23}
+\tag{22}
 $$
-
-if the offset is included.
-
-Equivalently,
-
-
+if the offset is included. Equivalently,
 $$
 \boxed{
 E_{\mathrm{QUBO}}(\mathbf{x})
@@ -638,18 +618,15 @@ E_{\mathrm{QUBO}}(\mathbf{x})
 +
 C
 }
-\tag{24}
+\tag{23}
 $$
+where
 
-where:
+- $\lvert\mathbf{x}\rangle$: Computational-basis quantum state corresponding to bitstring $\mathbf{x}$.
+- $\langle \mathbf{x} \vert \hat{H}_C \vert \mathbf{x}\rangle$: Hamiltonian expectation value for bitstring $\mathbf{x}$.
+- $C$: Constant offset.
 
-| Symbol | Meaning |
-|---|---|
-| $\lvert\mathbf{x}\rangle$ | Computational-basis quantum state corresponding to bitstring $\mathbf{x}$ |
-| $\langle \mathbf{x} \vert \hat{H}_C \vert \mathbf{x}\rangle$ | Hamiltonian expectation value for bitstring $\mathbf{x}$ |
-| $C$ | Constant offset |
-
-## 5.2 Code: Qiskit QUBO-to-Ising conversion
+## 5.1 Code: Qiskit QUBO-to-Ising conversion
 
 ```python
 def qiskit_qubo_to_ising(Q: np.ndarray):
@@ -672,21 +649,15 @@ def qiskit_qubo_to_ising(Q: np.ndarray):
 
 # 6. Solving the QUBO with QAOA
 
-## 6.1 Theory
-
 QAOA is a hybrid algorithm. Quantum computer prepares and samples
 $$
 |\psi(\boldsymbol{\gamma},\boldsymbol{\beta})\rangle.
 $$
-
 The classical computer adjusts
 $$
 \boldsymbol{\gamma},\boldsymbol{\beta}
 $$
-
 to reduce the expected cost:
-
-
 $$
 \boxed{
 F(\boldsymbol{\gamma},\boldsymbol{\beta})
@@ -699,17 +670,14 @@ F(\boldsymbol{\gamma},\boldsymbol{\beta})
 \psi(\boldsymbol{\gamma},\boldsymbol{\beta})
 \rangle
 }
-\tag{25}
+\tag{24}
 $$
+where
 
-where:
-
-| Symbol | Meaning |
-|---|---|
-| $F(\boldsymbol{\gamma},\boldsymbol{\beta})$ | QAOA objective minimized by the classical optimizer |
-| $\boldsymbol{\gamma}$ | Cost-layer parameters |
-| $\boldsymbol{\beta}$ | Mixer-layer parameters |
-| $\hat{H}_C$ | Cost Hamiltonian |
+- $F(\boldsymbol{\gamma},\boldsymbol{\beta})$: QAOA objective minimized by the classical optimizer.
+- $\boldsymbol{\gamma}$: Cost-layer parameters.
+- $\boldsymbol{\beta}$: Mixer-layer parameters.
+- $\hat{H}_C$: Cost Hamiltonian.
 
 At the end, the quantum circuit is sampled. The measured bitstrings are candidate solutions.
 
@@ -721,16 +689,14 @@ $$
 \arg\min_{\mathbf{x}\in \mathcal{S}}
 \mathbf{x}^{\mathsf{T}}Q\mathbf{x}
 }
-\tag{26}
+\tag{25}
 $$
+where
 
-where:
-| Symbol | Meaning |
-|---|---|
-| $\mathcal{S}$ | Set of bitstrings sampled from the QAOA circuit |
-| $\mathbf{x}_{\mathrm{best}}$ | Best sampled QUBO solution |
+- $\mathcal{S}$: Set of bitstrings sampled from the QAOA circuit.
+- $\mathbf{x}_{\mathrm{best}}$: Best sampled QUBO solution.
 
-## 6.2 Code: QAOA solver using `MinimumEigenOptimizer`
+## 6.1 Code: QAOA solver using `MinimumEigenOptimizer`
 
 ```python
 import numpy as np
@@ -794,9 +760,8 @@ def solve_qubo_with_qaoa(
     }
 ```
 
-# 7. Complete example
+# 7. Example
 
-## 7.1 Theory
 Consider the QUBO matrix
 $$
 \boxed{
@@ -807,14 +772,14 @@ Q=
 0 & 0 & 1
 \end{bmatrix}
 }
-\tag{27}
+\tag{26}
 $$
 The objective is
 $$
 E_{\mathrm{QUBO}}(\mathbf{x})
 =
 \mathbf{x}^{\mathsf{T}}Q\mathbf{x}.
-\tag{28}
+\tag{27}
 $$
 Writing the variables explicitly:
 $$
@@ -825,7 +790,7 @@ x_0\\
 x_1\\
 x_2
 \end{bmatrix}.
-\tag{29}
+\tag{28}
 $$
 
 Because $Q$ is upper triangular, the effective QUBO objective is
@@ -843,18 +808,16 @@ x_2
 -
 2x_1x_2
 }
-\tag{30}
+\tag{29}
 $$
+where
 
-where:
-| Symbol | Meaning |
-|---|---|
-| $x_0,x_1,x_2$ | Binary decision variables |
-| $E_{\mathrm{QUBO}}$ | QUBO energy |
+- $x_0,x_1,x_2$: Binary decision variables.
+- $E_{\mathrm{QUBO}}$: QUBO energy.
 
 This example rewards choosing adjacent pairs $(x_0,x_1)$ and $(x_1,x_2)$ because the pairwise coefficients are negative.
 
-## 7.2 Code: Full QAOA pipeline
+## 7.1 Code
 
 ```python
 import numpy as np
@@ -886,7 +849,6 @@ $$
 =
 (1,1,1)
 }
-\tag{31}
 $$
 The corresponding objective value is
 $$
@@ -895,18 +857,16 @@ E_{\mathrm{QUBO}}(1,1,1)
 1+1+1-2-2
 =
 -1.
-\tag{32}
 $$
 So the expected minimum is
 $$
 \boxed{
 E_{\min}=-1
 }
-\tag{33}
 $$
 
 # 8. Classical brute-force validation
-## 8.1 Theory
+
 For small QUBO problems, the simplest validation is brute force. Brute force evaluates
 $$
 E_{\mathrm{QUBO}}(\mathbf{x})
@@ -925,17 +885,16 @@ $$
 \arg\min_{\mathbf{x}\in\{0,1\}^n}
 \mathbf{x}^{\mathsf{T}}Q\mathbf{x}
 }
-\tag{34}
+\tag{30}
 $$
-where:
-| Symbol | Meaning |
-|---|---|
-| $\mathbf{x}_{\mathrm{exact}}$ | Exact classical minimizer |
-| $E_{\mathrm{exact}}$ | Exact minimum QUBO energy |
+where
 
-This is practical only for small $n$, because the number of candidates is $ 2^n$.
+- $\mathbf{x}_{\mathrm{exact}}$: Exact classical minimizer.
+- $E_{\mathrm{exact}}$: Exact minimum QUBO energy.
 
-## 8.2 Code: Brute-force QUBO solver
+This is practical only for small $n$, because the number of candidates is $2^n$.
+
+## 8.1 Code: Brute-force QUBO solver
 
 ```python
 import itertools
@@ -973,7 +932,7 @@ def brute_force_qubo(Q: np.ndarray):
     return best_x, best_energy, all_results
 ```
 
-## 8.3 Code: Validate QAOA solution against brute force
+## 8.2 Code: Validate QAOA solution against brute force
 
 ```python
 best_x_exact, best_energy_exact, all_results = brute_force_qubo(Q)
@@ -1002,7 +961,7 @@ True
 Because QAOA is approximate and probabilistic, this may not always be true for larger or harder problems.
 
 # 9. Validate the QUBO-to-Ising conversion
-## 9.1 Theory
+
 The Ising conversion is correct if every binary string gives the same energy before and after conversion.
 
 For a bitstring $\mathbf{x}$, define
@@ -1010,7 +969,7 @@ $$
 \boxed{
 z_i = 1 - 2x_i
 }
-\tag{35}
+\tag{31}
 $$
 and
 $$
@@ -1023,7 +982,7 @@ C
 +
 \sum_{i<j}J_{ij}z_iz_j
 }
-\tag{36}
+\tag{32}
 $$
 The conversion is correct if
 $$
@@ -1032,14 +991,14 @@ E_{\mathrm{QUBO}}(\mathbf{x})
 =
 E_{\mathrm{Ising}}(\mathbf{z})
 }
-\tag{37}
+\tag{33}
 $$
 for all
 $$
 \mathbf{x}\in\{0,1\}^n.
 $$
 
-## 9.2 Code: Validate Ising conversion
+## 9.1 Code: Validate Ising conversion
 
 ```python
 def qubo_energy(Q: np.ndarray, x: np.ndarray) -> float:
@@ -1121,8 +1080,6 @@ True
 
 # 10. Validate Qiskit's Ising conversion
 
-## 10.1 Theory
-
 Qiskit returns an operator and an offset:
 $$
 \boxed{
@@ -1130,7 +1087,7 @@ $$
 =
 \texttt{qp.to\_ising()}
 }
-\tag{38}
+\tag{34}
 $$
 
 For computational-basis states,
@@ -1142,12 +1099,12 @@ E_{\mathrm{QUBO}}(\mathbf{x})
 +
 C
 }
-\tag{39}
+\tag{35}
 $$
 
 This gives a direct way to check whether the Qiskit conversion is consistent with the original QUBO objective.
 
-## 10.2 Code: Evaluate a `SparsePauliOp` on a bitstring
+## 10.1 Code: Evaluate a `SparsePauliOp` on a bitstring
 
 ```python
 def pauli_z_eigenvalue(pauli_label: str, x: np.ndarray) -> int:
@@ -1204,7 +1161,7 @@ def sparse_pauli_energy_on_bitstring(operator, x: np.ndarray, offset: float = 0.
     return energy
 ```
 
-## 10.3 Code: Validate Qiskit Ising conversion against QUBO energies
+## 10.2 Code: Validate Qiskit Ising conversion against QUBO energies
 
 ```python
 def validate_qiskit_ising_conversion(Q: np.ndarray, atol: float = 1e-9):
@@ -1257,7 +1214,6 @@ True
 
 # 11. Complete workflow
 
-## 11.1 Theory
 The full workflow can be expressed as the function
 $$
 \boxed{
@@ -1266,15 +1222,13 @@ Q
 \mapsto
 \mathbf{x}_{\mathrm{QAOA}}
 }
-\tag{40}
+\tag{36}
 $$
+where
 
-where:
-| Symbol | Meaning |
-|---|---|
-| $\mathcal{A}$ | QUBO-to-QAOA algorithm |
-| $Q$ | Input QUBO matrix |
-| $\mathbf{x}_{\mathrm{QAOA}}$ | Best solution returned by QAOA |
+- $\mathcal{A}$: QUBO-to-QAOA algorithm.
+- $Q$: Input QUBO matrix.
+- $\mathbf{x}_{\mathrm{QAOA}}$: Best solution returned by QAOA.
 
 The internal steps are:
 $$
@@ -1295,7 +1249,7 @@ Q \\
 }
 $$
 
-## 11.2 Code: Workflow class
+## 11.1 Code: Workflow class
 
 ```python
 import numpy as np
@@ -1400,7 +1354,7 @@ class QUBOToQAOA:
         }
 ```
 
-## 11.3 Code: Use the workflow class
+## 11.2 Code: Use the workflow class
 
 ```python
 Q = np.array([
@@ -1427,7 +1381,7 @@ print(workflow.validate_against_brute_force())
 
 # 12. Validation checklist
 
-Use this checklist before trusting the QAOA result.
+Use this summarized checklist to validate the QAOA result. This is already incorporated in the main workflow and is added here separately as a summary.
 
 ## 12.1 Check the QUBO matrix
 
@@ -1565,14 +1519,12 @@ E_{\mathrm{objective}}(\mathbf{x})
 \lambda
 \left[g(\mathbf{x})\right]^2
 }
-\tag{42}
+\tag{37}
 $$
+where
 
-where:
-| Symbol | Meaning |
-|---|---|
-| $\lambda$ | Penalty weight |
-| $g(\mathbf{x})$ | Constraint function |
+- $\lambda$: Penalty weight.
+- $g(\mathbf{x})$: Constraint function.
 
 A poor penalty weight can make the QUBO invalid in practice. If $\lambda$ is too small, constraints may be violated. If $\lambda$ is too large, optimization can become numerically difficult.
 
@@ -1661,7 +1613,7 @@ This lets the same QUBO matrix be sent to:
 3. Qiskit QAOA,
 4. future IBM Runtime workflows.
 
-# 15. Minimal complete script
+# 15. Complete script
 
 This is the copy-paste version.
 
@@ -1795,7 +1747,7 @@ if __name__ == "__main__":
     print(np.isclose(exact_energy, qaoa_out["qubo_energy"]))
 ```
 
-# 17. References
+# 16. References
 
 1. Qiskit Optimization documentation, `QuadraticProgram`:  
    https://qiskit-community.github.io/qiskit-optimization/tutorials/01_quadratic_program.html
