@@ -1,8 +1,8 @@
-# QUBO to QAOA using Qiskit
+# QUBO to standard QAOA using Qiskit
 
 **By**: Sabah Ud Din Ahmad
 
-**Last Updated**: May 25, 2026
+**Last Updated**: May 30, 2026
 
 In this document, I explain how to convert a QUBO optimization problem into a QAOA workflow using Qiskit.
 
@@ -647,7 +647,7 @@ def qiskit_qubo_to_ising(Q: np.ndarray):
     return qp, ising_operator, offset
 ```
 
-# 6. Solving the QUBO with QAOA
+# 6. Solving QUBO with standard QAOA
 
 QAOA is a hybrid algorithm. Quantum computer prepares and samples
 $$
@@ -760,7 +760,7 @@ def solve_qubo_with_qaoa(
     }
 ```
 
-# 7. Example
+# 7. Example: Standard QAOA
 
 Consider the QUBO matrix
 $$
@@ -865,7 +865,7 @@ E_{\min}=-1
 }
 $$
 
-# 8. Classical brute-force validation
+# 8. Classical brute-force validation for standard QAOA
 
 For small QUBO problems, the simplest validation is brute force. Brute force evaluates
 $$
@@ -932,7 +932,7 @@ def brute_force_qubo(Q: np.ndarray):
     return best_x, best_energy, all_results
 ```
 
-## 8.2 Code: Validate QAOA solution against brute force
+## 8.2 Code: Validate standard QAOA solution against brute force
 
 ```python
 best_x_exact, best_energy_exact, all_results = brute_force_qubo(Q)
@@ -1693,10 +1693,8 @@ def brute_force_qubo(Q):
 
 def solve_qubo_with_qaoa(Q, reps=1, maxiter=200, seed=123):
     Q = validate_qubo_matrix(Q)
-
     qp = qubo_matrix_to_quadratic_program(Q)
     ising_operator, offset = qp.to_ising()
-
     sampler = StatevectorSampler(seed=seed)
     optimizer = COBYLA(maxiter=maxiter)
 
@@ -1727,9 +1725,7 @@ if __name__ == "__main__":
         [0,  1, -2],
         [0,  0,  1],
     ], dtype=float)
-
     exact_x, exact_energy = brute_force_qubo(Q)
-
     qaoa_out = solve_qubo_with_qaoa(
         Q=Q,
         reps=1,
@@ -1749,20 +1745,14 @@ if __name__ == "__main__":
 
 # 16. References
 
-1. Qiskit Optimization documentation, `QuadraticProgram`:  
-   https://qiskit-community.github.io/qiskit-optimization/tutorials/01_quadratic_program.html
+1. [Qiskit Optimization documentation, `QuadraticProgram`](https://qiskit-community.github.io/qiskit-optimization/tutorials/01_quadratic_program.html)
 
-2. Qiskit Optimization documentation, `MinimumEigenOptimizer`:  
-   https://qiskit-community.github.io/qiskit-optimization/stubs/qiskit_optimization.algorithms.MinimumEigenOptimizer.html
+2. [Qiskit Optimization documentation, `MinimumEigenOptimizer`](https://qiskit-community.github.io/qiskit-optimization/stubs/qiskit_optimization.algorithms.MinimumEigenOptimizer.html)
 
-3. Qiskit Optimization tutorial, minimum eigen optimizer and QUBO-to-Ising conversion:  
-   https://qiskit-community.github.io/qiskit-optimization/tutorials/03_minimum_eigen_optimizer.html
+3. [Qiskit Optimization tutorial, minimum eigen optimizer and QUBO-to-Ising conversion](https://qiskit-community.github.io/qiskit-optimization/tutorials/03_minimum_eigen_optimizer.html)
 
-4. IBM Quantum documentation, `QAOAAnsatz`:  
-   https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.library.QAOAAnsatz
+4. [IBM Quantum documentation, `QAOAAnsatz`](https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.library.QAOAAnsatz)
 
-5. IBM Quantum documentation, `StatevectorSampler`:  
-   https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.primitives.StatevectorSampler
+5. [IBM Quantum documentation, `StatevectorSampler`](https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.primitives.StatevectorSampler)
 
-6. IBM Quantum QAOA tutorial:  
-   https://quantum.cloud.ibm.com/docs/en/tutorials/quantum-approximate-optimization-algorithm
+6. [IBM Quantum QAOA tutorial](https://quantum.cloud.ibm.com/docs/en/tutorials/quantum-approximate-optimization-algorithm)
