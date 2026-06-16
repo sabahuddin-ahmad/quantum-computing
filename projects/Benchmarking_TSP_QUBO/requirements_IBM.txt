@@ -1,0 +1,17 @@
+# Core scientific stack
+numpy==2.4.6
+matplotlib==3.10.9
+
+# Notebook environment
+jupyterlab==4.5.7
+ipykernel==7.2.0
+
+# Qiskit stack
+qiskit==2.4.1
+qiskit-aer==0.17.2
+qiskit-ibm-runtime==0.47.0
+qiskit-optimization==0.7.0
+qiskit-algorithms==0.4.0
+
+pylatexenc==2.10
+gurobipy==13.0.2
